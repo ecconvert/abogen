@@ -16,7 +16,7 @@ except ImportError:
 class ChatterboxEngine(TTSEngine):
     """Chatterbox TTS Server implementation."""
     
-    def __init__(self, server_url: str, timeout: float = 30.0):
+    def __init__(self, server_url: str, timeout: float = 300.0):
         self.server_url = server_url.rstrip('/')
         self.timeout = timeout
         self._available_voices = None

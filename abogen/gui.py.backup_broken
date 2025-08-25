@@ -1992,21 +1992,12 @@ class abogen(QWidget):
         except Exception:
             file_size_str = "Unknown"
 
-        # pipeline_loaded_callback handles both Kokoro and Chatterbox engines
+        # pipeline_loaded_callback remains unchanged
         def pipeline_loaded_callback(np_module, kpipeline_class, error):
             if error:
-                # Check if this is a Kokoro-specific error when Chatterbox is selected
-                current_engine = self.engine_combo.currentData()
-                if current_engine == "chatterbox" and ("kokoro" in error.lower() or "torch" in error.lower()):
-                    # This is expected for Chatterbox - Kokoro modules aren't needed
-                    self.update_log("Kokoro modules not available (using Chatterbox instead)")
-                    # Continue with Chatterbox by setting modules to None
-                    np_module, kpipeline_class = None, None
-                else:
-                    # This is a real error
-                    self.update_log((f"Error loading modules: {error}", False))
-                    prevent_sleep_end()
-                    return
+                self.update_log((f"Error loading numpy or KPipeline: {error}", False))
+                prevent_sleep_end()
+                return
 
             self.btn_cancel.setEnabled(True)
 
@@ -2087,25 +2078,9 @@ class abogen(QWidget):
             # Store gpu_ok status to use when creating the conversion thread
             self.gpu_ok = gpu_ok
             self.update_log((gpu_msg, gpu_ok))
-            
-            # Check which TTS engine is selected
-            current_engine = self.engine_combo.currentData()
-            
-            if current_engine == "kokoro":
-                # Only load Kokoro modules if Kokoro is selected
-                self.update_log("Loading Kokoro modules...")
-                load_thread = LoadPipelineThread(pipeline_loaded_callback)
-                load_thread.start()
-            elif current_engine == "chatterbox":
-                # For Chatterbox, proceed directly without loading Kokoro modules
-                self.update_log("Using Chatterbox engine (no local modules needed)...")
-                # Call the callback directly with None for Kokoro-specific modules
-                pipeline_loaded_callback(None, None, None)
-            else:
-                # Unknown engine
-                error_msg = f"Unknown TTS engine: {current_engine}"
-                self.update_log((error_msg, False))
-                pipeline_loaded_callback(None, None, error_msg)
+            self.update_log("Loading modules...")
+            load_thread = LoadPipelineThread(pipeline_loaded_callback)
+            load_thread.start()
 
         threading.Thread(target=gpu_and_load, daemon=True).start()
 
@@ -2420,7 +2395,7 @@ class abogen(QWidget):
             )
             return
 
-        # Show informative message about preview being temporarily disabled
+        # For now, show an informative message
         from PyQt5.QtWidgets import QMessageBox
         
         msg = QMessageBox(self)
@@ -2433,6 +2408,95 @@ class abogen(QWidget):
                    f"Click 'Start' to test with actual text processing.")
         msg.addButton(QMessageBox.Ok)
         msg.exec_()
+
+    def cancel_conversion(self):
+
+        if not temp_wav:
+            if hasattr(self, "loading_movie"):
+                self.loading_movie.stop()
+            self._show_error_message_box(
+                "Preview Error", "Preview error: No audio generated."
+            )
+            self._preview_cleanup()
+            return
+
+        # stop loading animation, switch to stop icon
+        if hasattr(self, "loading_movie"):
+            self.loading_movie.stop()
+        self.preview_playing = True
+        self.btn_preview.setIcon(self.stop_icon)
+        self.btn_preview.setToolTip("Stop preview")
+        self.btn_preview.setEnabled(True)
+
+        def cleanup():
+            # Only remove if not from cache AND it's a temp file from VoicePreviewThread
+            if (
+                not from_cache
+                and hasattr(self, "preview_thread")
+                and hasattr(self.preview_thread, "temp_wav")
+                and self.preview_thread.temp_wav == temp_wav
+            ):
+                try:
+                    if os.path.exists(
+                        temp_wav
+                    ):  # Ensure it exists before trying to remove
+                        os.remove(temp_wav)
+                except Exception:
+                    pass
+            self._preview_cleanup()
+
+        try:
+            # Ensure pygame mixer is initialized for the audio thread
+            import pygame
+
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+
+            self.play_audio_thread = PlayAudioThread(temp_wav)
+            self.play_audio_thread.finished.connect(cleanup)
+            self.play_audio_thread.error.connect(
+                lambda msg: (self._show_preview_error_box(msg), cleanup())
+            )
+            self.play_audio_thread.start()
+        except Exception as e:
+            self._show_error_message_box(
+                "Preview Error", f"Could not play preview audio:\n{e}"
+            )
+            cleanup()
+
+    def _show_error_message_box(self, title, message):
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Critical)
+        box.setWindowTitle(title)
+        box.setText(message)
+        copy_btn = QPushButton("Copy")
+        box.addButton(copy_btn, QMessageBox.ActionRole)
+        box.addButton(QMessageBox.Ok)
+        copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(message))
+        box.exec_()
+
+    def _show_preview_error_box(self, msg):
+        self._show_error_message_box("Preview Error", f"Preview error: {msg}")
+
+    def _preview_cleanup(self):
+        self.preview_playing = False
+        if hasattr(self, "loading_movie"):
+            self.loading_movie.stop()
+        try:
+            if hasattr(self, "loading_movie"):
+                self.loading_movie.frameChanged.disconnect()
+        except Exception:
+            pass  # Ignore error if not connected
+        self.btn_preview.setIcon(self.play_icon)
+        self.btn_preview.setToolTip("Preview selected voice")
+        self.btn_preview.setEnabled(True)
+        self.voice_combo.setEnabled(True)
+        self.btn_voice_formula_mixer.setEnabled(True)  # Re-enable mixer button
+        self.btn_start.setEnabled(True)
+
+    def _preview_error(self, msg):
+        self._show_error_message_box("Preview Error", f"Preview error: {msg}")
+        self._preview_cleanup()
 
     def cancel_conversion(self):
         if self.is_converting:
