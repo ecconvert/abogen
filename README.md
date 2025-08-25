@@ -7,7 +7,13 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-maroon.svg)](https://opensource.org/licenses/MIT)
 
-Abogen is a powerful text-to-speech conversion tool that makes it easy to turn ePub, PDF, or text files into high-quality audio with matching subtitles in seconds. Use it for audiobooks, voiceovers for Instagram, YouTube, TikTok, or any project that needs natural-sounding text-to-speech, using [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M).
+Abogen is a powerful text-to-speech conversion tool that makes it easy to turn ePub, PDF, or text files into high-quality audio with matching subtitles in seconds. Use it for audiobooks, voiceovers for Instagram, YouTube, TikTok, or any project that needs natural-sounding text-to-speech.
+
+**🎯 Supports Multiple TTS Engines:**
+- **Kokoro-82M**: Built-in lightweight TTS engine
+- **Chatterbox TTS Server**: Advanced TTS with 30+ voices and GPU acceleration
+
+**🐳 Docker Ready**: Complete containerization with automated setup scripts for cross-platform deployment.
 
 <img title="Abogen Main" src='https://raw.githubusercontent.com/denizsafak/abogen/refs/heads/main/demo/abogen.png' width="380"> <img title="Abogen Processing" src='https://raw.githubusercontent.com/denizsafak/abogen/refs/heads/main/demo/abogen2.png' width="380">
 
@@ -18,6 +24,39 @@ https://github.com/user-attachments/assets/094ba3df-7d66-494a-bc31-0e4b41d0b865
 > This demo was generated in just 5 seconds, producing ∼1 minute of audio with perfectly synced subtitles. To create a similar video, see [the demo guide](https://github.com/denizsafak/abogen/tree/main/demo).
 
 ## `How to install?` <a href="https://pypi.org/project/abogen/" target="_blank"><img src="https://img.shields.io/pypi/pyversions/abogen" alt="Abogen Compatible PyPi Python Versions" align="right" style="margin-top:6px;"></a>
+
+### 🐳 Docker Installation (Recommended for Production)
+
+**The easiest way to run Abogen with all TTS engines:**
+
+#### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- For Windows: WSL2 backend enabled in Docker Desktop
+- For NVIDIA GPU support: [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+#### Quick Start
+```bash
+# Clone the repository
+git clone https://github.com/denizsafak/abogen.git
+cd abogen
+
+# Linux/macOS
+chmod +x start-abogen.sh
+./start-abogen.sh
+
+# Windows (PowerShell as Administrator)
+.\start-abogen.ps1
+```
+
+The startup scripts will:
+- ✅ Check Docker installation and start services
+- ✅ Pull/build required Docker images
+- ✅ Start Chatterbox TTS Server (30+ voices, GPU accelerated)
+- ✅ Launch Abogen GUI with TTS engine selection
+- ✅ Set up proper networking and GPU access
+- ✅ Enable X11 forwarding for GUI display
+
+### 📦 Local Installation
 
 ### Windows
 Go to [espeak-ng latest release](https://github.com/espeak-ng/espeak-ng/releases/latest) download and run the *.msi file.
@@ -102,126 +141,162 @@ pip3 install --pre torch torchvision torchaudio --index-url https://download.pyt
 
 ## `Alternative TTS Engine: Chatterbox TTS Server`
 
-Abogen now supports [Chatterbox TTS Server](https://github.com/JarodMica/Chatterbox-TTS-Server) as an alternative to the built-in Kokoro engine. Chatterbox provides additional voice models and features.
+Abogen now supports [Chatterbox TTS Server](https://github.com/JarodMica/Chatterbox-TTS-Server) as an alternative to the built-in Kokoro engine. Chatterbox provides 30+ voices, multiple languages, and GPU acceleration.
 
-### Setting up Chatterbox TTS Server
+### 🚀 Quick Setup with Docker (Recommended)
 
-1. **Clone the Chatterbox repository** (recommended: alongside your Abogen project):
+**Use the automated Docker setup** for the best experience:
+
+```bash
+# Clone both repositories
+git clone https://github.com/denizsafak/abogen.git
+cd abogen
+
+# Start everything with one command
+./start-abogen.sh  # Linux/macOS
+# or
+.\start-abogen.ps1  # Windows PowerShell
+```
+
+This automatically:
+- Starts Chatterbox TTS Server on `http://localhost:8004`
+- Builds and launches Abogen GUI
+- Detects your hardware (NVIDIA GPU, AMD GPU, or CPU)
+- Sets up networking between containers
+
+### 🔧 Manual Setup (Advanced Users)
+
+If you prefer manual setup or want to use an existing Chatterbox installation:
+
+1. **Set up Chatterbox TTS Server** (in a separate directory):
    ```bash
-   # Navigate to your projects directory
-   cd /path/to/your/projects
-   
-   # Clone Chatterbox TTS Server
+   # Clone Chatterbox (separate from Abogen)
    git clone https://github.com/JarodMica/Chatterbox-TTS-Server.git
    cd Chatterbox-TTS-Server
+   
+   # Use Docker Compose (recommended)
+   docker-compose up -d
+   
+   # Verify it's running
+   curl http://localhost:8004/api/health
    ```
 
-2. **Use the automated setup scripts** (works on Mac, Windows, and Linux):
-   ```bash
-   # Check if Docker is installed and running
-   ./check-docker.sh
-   
-   # Check server status
-   ./status.sh
-   
-   # Start the server (auto-detects your hardware)
-   ./start-server.sh
-   
-   # View server logs
-   ./logs.sh
-   
-   # Stop the server
-   ./stop-server.sh
-   ```
+2. **Configure Abogen**:
+   - Start Abogen: `python -m abogen.main`
+   - Go to Settings → TTS Engine → Select "Chatterbox"
+   - Server URL: `http://localhost:8004` (auto-detected)
+   - Test connection and start converting!
 
-3. **Hardware auto-detection**:
-   - **Mac (M1/M2/M3/M4)**: Uses CPU-optimized Docker Compose
-   - **Windows/Linux with NVIDIA GPU**: Uses CUDA acceleration
-   - **AMD GPU systems**: Uses ROCm acceleration
-   - **CPU-only systems**: Falls back to CPU processing
+### 🎯 Benefits of Chatterbox Integration
+- **30+ High-Quality Voices**: Multiple languages and voice styles
+- **GPU Acceleration**: NVIDIA CUDA, AMD ROCm, and Apple Metal support
+- **Containerized**: Runs independently, easy to start/stop
+- **Network API**: Can be shared across multiple applications
+- **Hardware Optimized**: Auto-detects your hardware capabilities
 
-4. **Configure Abogen to use Chatterbox**:
-   - Start the Chatterbox server: `./start-server.sh`
-   - Open Abogen and go to Settings
-   - Change "TTS Engine" from "Kokoro" to "Chatterbox"
-   - The server URL should be automatically set to `http://localhost:8004`
-   - Test the connection and start converting!
+### 📋 TTS Engine Comparison
 
-### Benefits of Chatterbox TTS Server
-- Additional voice models and languages
-- Runs in a separate Docker container
-- Can be used across multiple projects
-- Hardware-optimized performance
-- Easy to start/stop when needed
+| Feature | Kokoro (Built-in) | Chatterbox Server |
+|---------|-------------------|-------------------|
+| **Setup** | Included with Abogen | Requires Docker setup |
+| **Voices** | 9 languages, male/female | 30+ voices, multiple styles |
+| **Quality** | High-quality, fast | Premium quality, customizable |
+| **GPU Support** | CUDA, ROCm, Metal | CUDA, ROCm, Metal + optimized |
+| **Resource Usage** | Lightweight | More resources, better quality |
+| **Network** | Local only | API-based, shareable |
+| **Best For** | Quick setup, basic needs | Production, multiple voices |
 
 ### Quick Pickup Guide (For Development)
 
-If you're continuing work on the modular TTS system:
+If you're continuing work on the modular TTS system or Docker deployment:
 
 1. **Current Status**: 
    - ✅ Modular TTS system implemented in `abogen/tts_engines/`
    - ✅ Chatterbox integration complete with HTTP API support
-   - ✅ GUI updated with TTS engine selection
-   - ✅ All integration tests passing
-   - ✅ Management scripts created in Chatterbox-TTS-Server folder
-   - ✅ **Chatterbox server running on http://localhost:8004**
-   - ✅ **Abogen GUI successfully started with `python -m abogen.main`**
-   - ✅ **Direct engine instantiation tested and working**
-   - ✅ **All dependencies resolved and installed**
+   - ✅ GUI updated with TTS engine selection in Settings
+   - ✅ **Complete Docker orchestration with automated setup**
+   - ✅ **Cross-platform startup scripts (`start-abogen.sh`, `start-abogen.ps1`)**
+   - ✅ **Docker Compose configuration for both services**
+   - ✅ **GPU support auto-detection (NVIDIA/AMD)**
+   - ✅ All integration tests passing and timeout issues resolved
 
-2. **File Structure**:
+2. **Docker File Structure**:
    ```
-   /Users/jose/Projects/
-   ├── abogen/                          # Main Abogen project
-   │   ├── abogen/tts_engines/         # Modular TTS system
-   │   │   ├── __init__.py
-   │   │   ├── base.py                 # Base classes
-   │   │   ├── kokoro.py               # Kokoro wrapper
-   │   │   ├── chatterbox.py           # Chatterbox integration
-   │   │   └── factory.py              # Engine factory
-   │   ├── test_chatterbox_*.py        # Integration tests
-   │   └── mock_server.py              # Mock server for testing
-   └── Chatterbox-TTS-Server/          # Separate Chatterbox server
-       ├── detect-hardware.sh          # Auto hardware detection
-       ├── start-server.sh             # Start server
-       ├── stop-server.sh              # Stop server
-       ├── status.sh                   # Check status
-       ├── logs.sh                     # View logs
-       └── venv_chatterbox/            # Virtual environment
+   /abogen/                            # Main Abogen project
+   ├── Dockerfile                      # Abogen container build
+   ├── docker-compose.yml             # Complete orchestration
+   ├── requirements.txt               # Python dependencies
+   ├── .dockerignore                  # Optimized build context
+   ├── start-abogen.sh               # Linux/macOS startup script
+   ├── start-abogen.ps1              # Windows PowerShell script
+   ├── abogen/tts_engines/           # Modular TTS system
+   │   ├── base.py                   # Base classes
+   │   ├── kokoro.py                 # Kokoro wrapper
+   │   ├── chatterbox.py             # Chatterbox integration
+   │   └── factory.py                # Engine factory
+   ├── test_*.py                     # Integration tests
+   └── test_gettysburg.txt           # Sample TTS input
    ```
 
-3. **To Resume Development**:
+3. **Quick Development Setup**:
    ```bash
-   # Check server status
-   cd /Users/jose/Projects/Chatterbox-TTS-Server
-   ./status.sh
+   # Clone and start everything
+   git clone https://github.com/denizsafak/abogen.git
+   cd abogen
    
-   # Start server if needed (already running)
-   ./start-server.sh
+   # Linux/macOS
+   chmod +x start-abogen.sh
+   ./start-abogen.sh
    
-   # Test integration
-   cd /Users/jose/Projects/abogen
-   python test_chatterbox_integration.py
-   python test_direct_engine.py
+   # Windows (PowerShell as Admin)
+   .\start-abogen.ps1
    
-   # Start Abogen GUI (CORRECT COMMAND)
-   source venv/bin/activate
-   python -m abogen.main  # Note: main, not gui
+   # Access GUI at http://localhost:5800
+   # Both Kokoro and Chatterbox engines available
    ```
 
-4. **Next Steps for Testing**:
-   - 🎯 Load a document in the GUI and test TTS synthesis
-   - 🎯 Verify Chatterbox voices appear in voice dropdown
-   - 🎯 Test audio playback and queue functionality
-   - 🎯 Confirm settings persistence across restarts
+4. **Development Workflow**:
+   ```bash
+   # Check container status
+   docker ps
+   
+   # View logs
+   docker logs abogen
+   docker logs chatterbox-tts
+   
+   # Rebuild after code changes
+   docker-compose down
+   docker-compose up --build
+   
+   # Test TTS engines
+   python test_gettysburg_tts.py  # Direct engine test
+   ```
 
-5. **Branch Info**: 
-   - Current branch: `feature/modular-tts-engines`
-   - All changes committed and pushed
-   - ✅ **Integration complete and ready for final testing**
+5. **Key Integration Points**:
+   - **Settings GUI**: TTS Engine dropdown with Kokoro/Chatterbox selection
+   - **Auto-detection**: Chatterbox server status checked on startup
+   - **Voice Loading**: Dynamic voice list from selected engine
+   - **Conversion**: Modular engine routing in `conversion.py`
+   - **Docker Network**: `abogen-network` for inter-container communication
+
+6. **Testing Checklist**:
+   - ✅ GUI launches in browser at http://localhost:5800
+   - ✅ Settings → TTS Engine shows both options
+   - ✅ Chatterbox voices load when server is running
+   - ✅ Audio generation works with both engines
+   - ✅ File drag-and-drop works in Docker GUI
+   - ✅ GPU acceleration detected and used
+7. **Production Deployment**:
+   - **Cross-Platform**: Same Docker setup works on Windows, Linux, macOS
+   - **GPU Support**: Auto-detects NVIDIA/AMD GPU, falls back to CPU
+   - **Portability**: Copy project folder to any Docker-capable machine
+   - **Scaling**: Can run multiple instances with different ports
 
 > [!TIP]
-> The Chatterbox server runs independently and can be started/stopped as needed. Server is currently running on http://localhost:8004 with 30+ voices available.
+> For production deployment, the Docker setup provides the most reliable and portable solution. The startup scripts handle all dependencies and configuration automatically.
+
+> [!NOTE]
+> Branch: `feature/modular-tts-engines` - Contains all Docker orchestration and modular TTS improvements. Ready for merge to main.
 
 ## `How to run?`
 If you installed using pip, you can simply run the following command to start Abogen:
@@ -254,7 +329,7 @@ Here’s Abogen in action: in this demo, it processes ∼3,000 characters of tex
 | **Input Box** | Drag and drop `ePub`, `PDF`, or `.TXT` files (or use built-in text editor) |
 | **Queue options** | Add multiple files to a queue and process them in batch, with individual settings for each file. See [Queue mode](#queue-mode) for more details. |
 | **Speed** | Adjust speech rate from `0.1x` to `2.0x` |
-| **Select Voice** | First letter of the language code (e.g., `a` for American English, `b` for British English, etc.), second letter is for `m` for male and `f` for female. |
+| **Select Voice** | First letter of the language code (e.g., `a` for American English, `b` for British English, etc.), second letter is for `m` for male and `f` for female. **With Chatterbox**: 30+ voices across multiple languages with different styles and qualities. |
 | **Voice mixer** | Create custom voices by mixing different voice models with a profile system. See [Voice Mixer](#voice-mixer) for more details. |
 | **Voice preview** | Listen to the selected voice before processing. |
 | **Generate subtitles** | `Disabled`, `Sentence`, `Sentence + Comma`, `Sentence + Highlighting`, `1 word`, `2 words`, `3 words`, etc. (Represents the number of words in each subtitle entry) |
@@ -275,6 +350,8 @@ Here’s Abogen in action: in this demo, it processes ∼3,000 characters of tex
 | **Theme** | Change the application's theme using `System`, `Light`, or `Dark` options. |
 | **Configure max words per subtitle** | Configures the maximum number of words per subtitle entry. |
 | **Configure max lines in log window** | Configures the maximum number of lines to display in the log window. |
+| **TTS Engine** | Select between "Kokoro" (built-in) or "Chatterbox" (server-based with 30+ voices). |
+| **Chatterbox Server URL** | Configure the Chatterbox TTS Server URL (auto-detected as `http://localhost:8004`). |
 | **Separate chapters audio format** | Configures the audio format for separate chapters as `wav`, `flac`, `mp3`, or `opus`. |
 | **Create desktop shortcut** | Creates a shortcut on your desktop for easy access. |
 | **Open config directory** | Opens the directory where the configuration file is stored. |
@@ -371,41 +448,143 @@ audio-samplerate=48000
 volume-max=200
 ```
 
-## `Docker Guide`
-If you want to run Abogen in a Docker container:
-1) [Download the repository](https://github.com/denizsafak/abogen/archive/refs/heads/main.zip) and extract, or clone it using git.
-2) Go to `abogen` folder. You should see `Dockerfile` there.
-3) Open your termminal in that directory and run the following commands:
+## `Docker Guide` 🐳
+
+Abogen provides comprehensive Docker support for easy deployment and portability.
+
+### 🚀 Automated Docker Setup (Recommended)
+
+The easiest way to run Abogen with all TTS engines:
 
 ```bash
-# Build the Docker image:
-docker build --progress plain -t abogen .
+# Clone the repository
+git clone https://github.com/denizsafak/abogen.git
+cd abogen
 
-# Note that building the image may take a while.
-# After building is complete, run the Docker container:
+# Linux/macOS
+chmod +x start-abogen.sh
+./start-abogen.sh
 
-# Windows
-docker run --name abogen -v %cd%:/shared -p 5800:5800 -p 5900:5900 --gpus all abogen
-
-# Linux
-docker run --name abogen -v $(pwd):/shared -p 5800:5800 -p 5900:5900 --gpus all abogen
-
-# MacOS
-docker run --name abogen -v $(pwd):/shared -p 5800:5800 -p 5900:5900 abogen
-
-# We expose port 5800 for use by a web browser, 5900 if you want to connect with a VNC client.
+# Windows (PowerShell as Administrator)
+.\start-abogen.ps1
 ```
 
-Abogen launches automatically inside the container. 
-- You can access it via a web browser at [http://localhost:5800](http://localhost:5800) or connect to it using a VNC client at `localhost:5900`.
-- You can use `/shared` directory to share files between your host and the container.
-- For later use, start it with `docker start abogen` and stop it with `docker stop abogen`.
+**What the scripts do:**
+- ✅ Check Docker and Docker Compose installation
+- ✅ Start Chatterbox TTS Server (30+ voices, GPU support)
+- ✅ Build and launch Abogen GUI container
+- ✅ Set up networking between containers
+- ✅ Enable X11 forwarding for GUI display
+- ✅ Auto-detect hardware (NVIDIA/AMD GPU support)
+- ✅ Mount your files for persistent access
 
-Known issues:
-- Audio preview is not working inside container (ALSA error).
-- `Open cache directory` and `Open configuration directory` options in settings not working. (Tried pcmanfm, did not work with Abogen).
+### 🔧 Manual Docker Setup (Advanced)
 
-(Special thanks to [@geo38](https://www.reddit.com/user/geo38/) from Reddit, who provided the Dockerfile and instructions in [this comment](https://www.reddit.com/r/selfhosted/comments/1k8x1yo/comment/mpe0bz8/).)
+If you prefer manual control:
+
+```bash
+# Build Abogen image
+docker build -t abogen .
+
+# Start the complete stack
+docker-compose up -d
+
+# Or run individually:
+
+# Start Chatterbox TTS Server
+docker run -d --name chatterbox-tts \
+  --gpus all \
+  -p 8004:8004 \
+  jarrodmical/chatterbox-tts-server:latest
+
+# Start Abogen GUI
+docker run -d --name abogen \
+  --gpus all \
+  -p 5800:5800 \
+  -p 5900:5900 \
+  -v $(pwd):/shared \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  abogen
+```
+
+### 🌐 Accessing the Application
+
+**Web Browser (Recommended):**
+- Open [http://localhost:5800](http://localhost:5800) in your browser
+- Full GUI experience with file drag-and-drop support
+
+**VNC Client (Alternative):**
+- Connect to `localhost:5900` with any VNC client
+- No password required
+
+### 📁 File Sharing
+
+Files are shared between host and container via the `/shared` directory:
+- **Host**: Current working directory (`$(pwd)` or `%cd%`)
+- **Container**: `/shared` directory
+- **Usage**: Drag files into the shared folder to access them in Abogen
+
+### 🎯 Container Management
+
+```bash
+# Check status
+docker ps
+
+# View logs
+docker logs abogen
+docker logs chatterbox-tts
+
+# Stop containers
+docker stop abogen chatterbox-tts
+
+# Start existing containers
+docker start chatterbox-tts abogen
+
+# Remove containers
+docker rm abogen chatterbox-tts
+```
+
+### 🔧 Advanced Configuration
+
+**Environment Variables:**
+```bash
+# Custom TTS server URL
+-e CHATTERBOX_URL=http://custom-server:8004
+
+# Disable GPU (CPU-only mode)
+# Remove --gpus all flag
+
+# Custom display
+-e DISPLAY=:1
+```
+
+**Volume Mounts:**
+```bash
+# Custom file sharing
+-v /path/to/your/files:/shared
+
+# Persistent cache
+-v abogen-cache:/app/cache
+
+# Configuration persistence
+-v abogen-config:/app/config
+```
+
+### ⚠️ Known Limitations
+
+- **Audio Preview**: May not work in container (hardware audio limitations)
+- **File Browser**: Some "Open Directory" functions limited in container
+- **Performance**: GUI over web/VNC has slight performance overhead compared to native
+
+### 🏆 Benefits of Docker Deployment
+
+- **🚀 Portability**: Runs identically on any Docker-capable system
+- **🔒 Isolation**: No conflicts with host system packages
+- **⚡ Easy Setup**: One command deployment
+- **🎯 Reproducible**: Same environment every time
+- **🔄 Easy Updates**: Pull new images for updates
+- **🌍 Cross-Platform**: Windows, Linux, macOS support
 
 ## `Similar Projects`
 Abogen is a standalone project, but it is inspired by and shares some similarities with other projects. Here are a few:
@@ -418,10 +597,15 @@ Abogen is a standalone project, but it is inspired by and shares some similariti
 ## `Roadmap`
 - [ ] Add OCR scan feature for PDF files using docling/teserract.
 - [x] Add chapter metadata for .m4a files. (Issue [#9](https://github.com/denizsafak/abogen/issues/9), PR [#10](https://github.com/denizsafak/abogen/pull/10))
+- [x] **Add modular TTS engine system with Chatterbox integration** ✅
+- [x] **Complete Docker orchestration with automated setup scripts** ✅
 - [ ] Add support for different languages in GUI.
 - [x] Add voice formula feature that enables mixing different voice models. (Issue [#1](https://github.com/denizsafak/abogen/issues/1), PR [#5](https://github.com/denizsafak/abogen/pull/5))
 - [ ] Add support for kokoro-onnx (If it's necessary).
 - [x] Add dark mode.
+- [ ] Add support for Azure Cognitive Services TTS
+- [ ] Add support for Amazon Polly TTS
+- [ ] Web-based interface option
 
 ## `Troubleshooting`
 If you encounter any issues while running Abogen, try launching it from the command line with:

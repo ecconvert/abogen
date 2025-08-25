@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Chatterbox TTS Server
+  chatterbox-tts:
+    image: ecconvert/chatterbox-tts-server:latest
+    container_name: chatterbox-tts-server
+    ports:
+      - "8004:8004"  # Web UI
+      - "8000:8000"  # API (if different)
+    volumes:
+      - chatterbox_models:/app/models
+      - chatterbox_cache:/app/cache
+    environment:
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Abogen GUI Application
+  abogen:
+    build: .
+    container_name: abogen-app
+    depends_on:
+      - chatterbox-tts
+    ports:
+      - "5900:5900"  # VNC (optional)
+    volumes:
+      # Mount directories for file access
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./cache:/app/cache
+      # X11 socket for GUI (Linux/macOS)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Audio device access
+      - /dev/snd:/dev/snd
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native
+      # Chatterbox server URL
+      - CHATTERBOX_SERVER_URL=http://chatterbox-tts:8004
+    devices:
+      - /dev/dri:/dev/dri  # GPU access for rendering
+    network_mode: "service:chatterbox-tts"  # Share network with Chatterbox
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  chatterbox_models:
+  chatterbox_cache:
+
+networks:
+  default:
+    driver: bridge

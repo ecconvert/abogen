@@ -1,0 +1,75 @@
+# Docker ignore file for Abogen
+
+# Version control
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+build
+develop-eggs
+dist
+downloads
+eggs
+.eggs
+lib
+lib64
+parts
+sdist
+var
+wheels
+*.egg-info
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+test_*
+*_test.py
+tests/
+
+# Documentation
+*.md
+docs/
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Large files/directories
+*.wav
+*.mp3
+*.m4a
+*.m4b
+*.mp4
+output/
+cache/
+temp/
+
+# Backup files
+*.backup
+*.bak
