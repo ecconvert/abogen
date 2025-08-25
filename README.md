@@ -154,6 +154,61 @@ Abogen now supports [Chatterbox TTS Server](https://github.com/JarodMica/Chatter
 - Hardware-optimized performance
 - Easy to start/stop when needed
 
+### Quick Pickup Guide (For Development)
+
+If you're continuing work on the modular TTS system:
+
+1. **Current Status**: 
+   - ✅ Modular TTS system implemented in `abogen/tts_engines/`
+   - ✅ Chatterbox integration complete with HTTP API support
+   - ✅ GUI updated with TTS engine selection
+   - ✅ All integration tests passing
+   - ✅ Management scripts created in Chatterbox-TTS-Server folder
+
+2. **File Structure**:
+   ```
+   /Users/jose/Projects/
+   ├── abogen/                          # Main Abogen project
+   │   ├── abogen/tts_engines/         # Modular TTS system
+   │   │   ├── __init__.py
+   │   │   ├── base.py                 # Base classes
+   │   │   ├── kokoro.py               # Kokoro wrapper
+   │   │   ├── chatterbox.py           # Chatterbox integration
+   │   │   └── factory.py              # Engine factory
+   │   ├── test_chatterbox_*.py        # Integration tests
+   │   └── mock_server.py              # Mock server for testing
+   └── Chatterbox-TTS-Server/          # Separate Chatterbox server
+       ├── detect-hardware.sh          # Auto hardware detection
+       ├── start-server.sh             # Start server
+       ├── stop-server.sh              # Stop server
+       ├── status.sh                   # Check status
+       ├── logs.sh                     # View logs
+       └── venv_chatterbox/            # Virtual environment
+   ```
+
+3. **To Resume Development**:
+   ```bash
+   # Check server status
+   cd /Users/jose/Projects/Chatterbox-TTS-Server
+   ./status.sh
+   
+   # Start server if needed
+   ./start-server.sh
+   
+   # Test integration
+   cd /Users/jose/Projects/abogen
+   python test_chatterbox_integration.py
+   
+   # Start Abogen GUI
+   source venv/bin/activate
+   python -m abogen.gui
+   ```
+
+4. **Branch Info**: 
+   - Current branch: `feature/modular-tts-engines`
+   - All changes committed and pushed
+   - Ready for testing and pull request
+
 > [!TIP]
 > The Chatterbox server runs independently and can be started/stopped as needed. It doesn't need to run continuously - just start it when you want to use Abogen with Chatterbox voices.
 

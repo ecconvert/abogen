@@ -1,0 +1,17 @@
+INFO:     Started server process [44009]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8004 (Press CTRL+C to quit)
+🎭 Starting Mock Chatterbox TTS Server...
+📡 Server will be available at: http://localhost:8004
+📖 API documentation: http://localhost:8004/docs
+🔍 Health check: http://localhost:8004/health
+
+🚀 Server starting...
+INFO:     127.0.0.1:51860 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58232 - "GET /api/ui/initial-data HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58254 - "GET /api/ui/initial-data HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [44009]
