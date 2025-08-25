@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Chatterbox TTS Server - Using local build or public image
+  chatterbox-tts:
+    # Option 1: Build from your fork locally (uncomment if you have the repo)
+    # build: 
+    #   context: ../chatterbox-tts-server
+    #   dockerfile: Dockerfile
+    
+    # Option 2: Use a working public image
+    image: bhimrazy/chatterbox-tts:latest
+    
+    container_name: chatterbox-tts-server
+    ports:
+      - "8004:8004"  # Web UI
+      - "8000:8000"  # API (if different)
+    volumes:
+      - chatterbox_models:/app/models
+      - chatterbox_cache:/app/cache
+      - chatterbox_hf_cache:/app/hf_cache
+    environment:
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - CUDA_VISIBLE_DEVICES=0
+    # Enable GPU support for Windows/NVIDIA
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Abogen GUI Application - Windows compatible
+  abogen:
+    build: .
+    container_name: abogen-app
+    depends_on:
+      - chatterbox-tts
+    ports:
+      - "5800:5800"  # Web-based GUI access
+      - "5900:5900"  # VNC access (optional)
+    volumes:
+      # Mount directories for file access
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./cache:/app/cache
+      # Windows-compatible volume mounts (no X11)
+      - ./shared:/shared
+    environment:
+      # Remove X11 display (not needed for Windows)
+      - DISPLAY=:99
+      # Use VNC/web interface instead
+      - VNC_RESOLUTION=1920x1080
+      - VNC_COL_DEPTH=24
+      # Chatterbox server URL
+      - CHATTERBOX_SERVER_URL=http://chatterbox-tts:8004
+    # Remove X11 and audio device mounts (Windows incompatible)
+    # devices:
+    #   - /dev/dri:/dev/dri  # GPU access for rendering
+    network_mode: "service:chatterbox-tts"  # Share network with Chatterbox
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  chatterbox_models:
+  chatterbox_cache:
+  chatterbox_hf_cache:
+
+networks:
+  default:
+    driver: bridge

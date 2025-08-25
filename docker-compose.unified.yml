@@ -1,0 +1,88 @@
+services:
+  # Chatterbox TTS Server - Configurable build
+  chatterbox-tts:
+    # Option 1: Build from local fork (if CHATTERBOX_BUILD_LOCAL=true)
+    build: 
+      context: ${CHATTERBOX_BUILD_PATH:-../chatterbox-tts-server}
+      dockerfile: ${CHATTERBOX_DOCKERFILE:-Dockerfile}
+    # Option 2: Use public image (if CHATTERBOX_BUILD_LOCAL=false)
+    image: ${CHATTERBOX_IMAGE:-bhimrazy/chatterbox-tts:latest}
+    container_name: chatterbox-tts-server
+    ports:
+      - "8004:8004"  # Web UI
+      - "8000:8000"  # API (if different)
+    volumes:
+      - chatterbox_models:/app/models
+      - chatterbox_cache:/app/cache
+      - chatterbox_hf_cache:/app/hf_cache
+      - chatterbox_voices:/app/voices
+      - chatterbox_reference:/app/reference_audio
+      - chatterbox_outputs:/app/outputs
+    environment:
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    # GPU support (comment out if no GPU)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Abogen GUI Application - Cross-platform
+  abogen:
+    build: 
+      context: .
+      dockerfile: ${ABOGEN_DOCKERFILE:-Dockerfile}
+    container_name: abogen-app
+    depends_on:
+      chatterbox-tts:
+        condition: service_healthy
+    ports:
+      - "${ABOGEN_WEB_PORT:-5800}:5800"  # Web GUI
+      - "${ABOGEN_VNC_PORT:-5900}:5900"  # VNC access
+    volumes:
+      # File access
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./cache:/app/cache
+      # Shared folder for easy file transfer
+      - ${SHARED_PATH:-./shared}:/shared
+      # Platform-specific mounts (handled by environment)
+      - ${X11_SOCKET_PATH:-/dev/null}:/tmp/.X11-unix:rw
+      - ${AUDIO_DEVICE_PATH:-/dev/null}:/dev/snd
+    environment:
+      - DISPLAY=${DISPLAY:-:99}
+      - CHATTERBOX_SERVER_URL=http://chatterbox-tts:8004
+      - VNC_RESOLUTION=${VNC_RESOLUTION:-1920x1080}
+      - VNC_COL_DEPTH=${VNC_COL_DEPTH:-24}
+      - PULSE_SERVER=${PULSE_SERVER:-}
+    # Platform-specific device access (commented out for Windows compatibility)
+    # devices: 
+    #   - /dev/dri:/dev/dri  # GPU access for rendering
+    # Network sharing
+    networks:
+      - abogen-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  chatterbox_models:
+  chatterbox_cache:
+  chatterbox_hf_cache:
+  chatterbox_voices:
+  chatterbox_reference:
+  chatterbox_outputs:
+
+networks:
+  abogen-network:
+    driver: bridge

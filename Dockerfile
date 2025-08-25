@@ -3,11 +3,6 @@ FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    # GUI dependencies
-    python3-pyqt5 \
-    python3-pyqt5.qtmultimedia \
-    qtbase5-dev \
-    qtmultimedia5-dev \
     # Audio dependencies
     ffmpeg \
     pulseaudio \
@@ -21,6 +16,12 @@ RUN apt-get update && apt-get install -y \
     # Build dependencies
     build-essential \
     pkg-config \
+    # VNC for remote access
+    tightvncserver \
+    fluxbox \
+    # Basic tools
+    curl \
+    wget \
     # Cleanup
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +36,9 @@ WORKDIR /app
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install PyQt5 through pip (more reliable than apt for containers)
+RUN pip install PyQt5 PyQt5-tools
 
 # Copy application code
 COPY . .
