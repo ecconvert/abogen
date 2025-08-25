@@ -37,40 +37,50 @@
 ## 🔄 In Progress
 
 ### Real Server Testing
-- [ ] ⏳ **CURRENTLY BUILDING**: Docker image for Chatterbox server
-  - Status: Building CUDA base image and dependencies
-  - ETA: 5-10 minutes depending on network speed
-  - Next: Wait for build completion and container startup
+- [x] ✅ **COMPLETED**: Docker image for Chatterbox server built successfully
+- [x] ✅ **COMPLETED**: Server started and running on http://localhost:8004
+- [x] ✅ **COMPLETED**: All integration tests passing with real server
+- [x] ✅ **COMPLETED**: Abogen GUI started successfully using `python -m abogen.main`
+
+### GUI Integration Testing  
+- [ ] ⏳ **CURRENTLY TESTING**: Full end-to-end workflow through GUI
+  - Status: GUI is running, ready for document loading and TTS testing
+  - Next: Load document and test TTS synthesis with Chatterbox voices
 
 ## 📋 Pending Tasks
 
-### Priority 1: Server Validation
-- [ ] **Complete Chatterbox server startup**
-  - Wait for Docker build to finish
-  - Verify server starts successfully on port 8004
-  - Check server health endpoint
-  - Confirm API endpoints are accessible
+### Priority 1: GUI Integration Validation ⭐
+- [ ] **Test complete GUI workflow**
+  - Load a document (text/ebook) into Abogen GUI
+  - Configure TTS settings to use Chatterbox engine
+  - Select a Chatterbox voice from dropdown
+  - Generate audio and verify playback
+  - Test pause/resume and queue functionality
 
-- [ ] **End-to-end integration testing**
-  - Stop mock server (already done)
-  - Test Abogen with real Chatterbox server
-  - Verify voice generation works
-  - Test error handling and edge cases
+- [ ] **Settings and persistence testing**
+  - Verify TTS engine selection persists across restarts
+  - Test voice parameter configurations
+  - Confirm settings save/load correctly
 
-### Priority 2: GUI and User Experience
-- [ ] **Abogen GUI testing with real server**
-  - Install missing dependencies (huggingface_hub, etc.)
-  - Start Abogen GUI: `python -m abogen.gui`
-  - Test TTS engine switching in Settings
-  - Generate test audio with Chatterbox voices
-  - Verify settings persistence
+### Priority 2: Server Health and Error Handling
+- [ ] **Test server resilience**
+  - Test behavior when server goes down
+  - Verify graceful fallback or error messages
+  - Test server restart and reconnection
 
-- [ ] **Voice profile testing**
+- [ ] **Voice and model testing**
   - Test different Chatterbox voice models
-  - Verify voice switching functionality
-  - Test voice parameters and settings
+  - Verify voice switching functionality  
+  - Test voice parameters and quality settings
 
-### Priority 3: Cross-Platform Validation
+### Priority 3: Kokoro Engine Resolution
+- [ ] **Resolve Kokoro dependencies**
+  - Address Python 3.13 compatibility issues with NumPy/Spacy
+  - Consider using Python 3.11 or 3.12 for Kokoro-specific environment
+  - Test alternative installation methods for kokoro and misaki packages
+  - Ensure both engines work seamlessly together
+
+### Priority 4: Cross-Platform Validation
 - [ ] **Test on different hardware configurations**
   - Verify hardware auto-detection on different systems
   - Test NVIDIA GPU configuration (if available)

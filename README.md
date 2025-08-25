@@ -164,6 +164,10 @@ If you're continuing work on the modular TTS system:
    - ✅ GUI updated with TTS engine selection
    - ✅ All integration tests passing
    - ✅ Management scripts created in Chatterbox-TTS-Server folder
+   - ✅ **Chatterbox server running on http://localhost:8004**
+   - ✅ **Abogen GUI successfully started with `python -m abogen.main`**
+   - ✅ **Direct engine instantiation tested and working**
+   - ✅ **All dependencies resolved and installed**
 
 2. **File Structure**:
    ```
@@ -192,25 +196,32 @@ If you're continuing work on the modular TTS system:
    cd /Users/jose/Projects/Chatterbox-TTS-Server
    ./status.sh
    
-   # Start server if needed
+   # Start server if needed (already running)
    ./start-server.sh
    
    # Test integration
    cd /Users/jose/Projects/abogen
    python test_chatterbox_integration.py
+   python test_direct_engine.py
    
-   # Start Abogen GUI
+   # Start Abogen GUI (CORRECT COMMAND)
    source venv/bin/activate
-   python -m abogen.gui
+   python -m abogen.main  # Note: main, not gui
    ```
 
-4. **Branch Info**: 
+4. **Next Steps for Testing**:
+   - 🎯 Load a document in the GUI and test TTS synthesis
+   - 🎯 Verify Chatterbox voices appear in voice dropdown
+   - 🎯 Test audio playback and queue functionality
+   - 🎯 Confirm settings persistence across restarts
+
+5. **Branch Info**: 
    - Current branch: `feature/modular-tts-engines`
    - All changes committed and pushed
-   - Ready for testing and pull request
+   - ✅ **Integration complete and ready for final testing**
 
 > [!TIP]
-> The Chatterbox server runs independently and can be started/stopped as needed. It doesn't need to run continuously - just start it when you want to use Abogen with Chatterbox voices.
+> The Chatterbox server runs independently and can be started/stopped as needed. Server is currently running on http://localhost:8004 with 30+ voices available.
 
 ## `How to run?`
 If you installed using pip, you can simply run the following command to start Abogen:

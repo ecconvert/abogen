@@ -2408,6 +2408,85 @@ class abogen(QWidget):
                    f"Click 'Start' to test with actual text processing.")
         msg.addButton(QMessageBox.Ok)
         msg.exec_()
+            try:
+                if self.play_audio_thread and self.play_audio_thread.isRunning():
+                    # Call the stop method on PlayAudioThread to safely handle stopping
+                    self.play_audio_thread.stop()
+                    self.play_audio_thread.wait(500)  # Wait a bit
+            except Exception as e:
+                print(f"Error stopping preview audio: {e}")
+            self._preview_cleanup()
+            return
+
+        if hasattr(self, "preview_thread") and self.preview_thread.isRunning():
+            return
+
+        # Check for cache first
+        cached_path = self._get_preview_cache_path()
+        if cached_path and os.path.exists(cached_path):
+            print(f"Cache hit for {cached_path}")
+            self.btn_preview.setEnabled(False)  # Disable button briefly
+            self.voice_combo.setEnabled(False)
+            self.btn_voice_formula_mixer.setEnabled(False)
+            self.btn_start.setEnabled(False)
+
+            # Directly play from cache
+            self.preview_playing = True
+            self.btn_preview.setIcon(self.stop_icon)
+            self.btn_preview.setToolTip("Stop preview")
+            self.btn_preview.setEnabled(True)
+
+            def cleanup_cached_play():
+                self._preview_cleanup()
+
+            try:
+                # Ensure pygame mixer is initialized for the audio thread
+                import pygame
+
+                if not pygame.mixer.get_init():
+                    pygame.mixer.init()
+
+                self.play_audio_thread = PlayAudioThread(cached_path)
+                self.play_audio_thread.finished.connect(cleanup_cached_play)
+                self.play_audio_thread.error.connect(
+                    lambda msg: (
+                        self._show_preview_error_box(msg),
+                        cleanup_cached_play(),
+                    )
+                )
+                self.play_audio_thread.start()
+            except Exception as e:
+                self._show_error_message_box(
+                    "Preview Error", f"Could not play cached preview audio:\n{e}"
+                )
+                cleanup_cached_play()
+            return
+
+        # If no cache hit, proceed to load pipeline and generate
+        self.btn_preview.setEnabled(False)
+        self.btn_preview.setToolTip("Loading...")
+        self.voice_combo.setEnabled(False)
+        self.btn_voice_formula_mixer.setEnabled(False)  # Disable mixer button
+        self.btn_start.setEnabled(False)  # Disable start button during preview
+
+        # Start loading animation - ensure signal connection is always active
+        if hasattr(self, "loading_movie"):
+            # Disconnect previous connections to avoid multiple connections
+            try:
+                self.loading_movie.frameChanged.disconnect()
+            except TypeError:
+                pass  # Ignore error if not connected
+
+            # Reconnect the signal
+            self.loading_movie.frameChanged.connect(
+                lambda: self.btn_preview.setIcon(
+                    QIcon(self.loading_movie.currentPixmap())
+                )
+            )
+            self.loading_movie.start()
+
+        def pipeline_loaded_callback(np_module, kpipeline_class, error):
+            self._on_pipeline_loaded_for_preview(np_module, kpipeline_class, error)
 
         load_thread = LoadPipelineThread(pipeline_loaded_callback)
         load_thread.start()

@@ -6,7 +6,7 @@ import atexit
 import signal
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import qInstallMessageHandler, QtMsgType
+from PyQt5.QtCore import qInstallMessageHandler, QtMsgType, Qt
 
 # Add the directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -93,8 +93,17 @@ if platform.system() == "Linux":
 
 def main():
     """Main entry point for console usage."""
+    # Ensure we're running on the main thread for macOS
+    import threading
+    if threading.current_thread() is not threading.main_thread():
+        print("Error: GUI must be started from the main thread!")
+        sys.exit(1)
+    
     app = QApplication(sys.argv)
-
+    
+    # Force Qt to use the main thread for all GUI operations
+    app.setAttribute(Qt.AA_DontUseNativeMenuBar, True)
+    
     # Set application icon using get_resource_path from utils
     icon_path = get_resource_path("abogen.assets", "icon.ico")
     if icon_path:
