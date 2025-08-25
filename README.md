@@ -100,6 +100,63 @@ pip3 install --pre torch torchvision torchaudio --index-url https://download.pyt
 
 > Special thanks to [@hg000125](https://github.com/hg000125) for his contribution in [#23](https://github.com/denizsafak/abogen/issues/23). AMD GPU support is possible thanks to his work.
 
+## `Alternative TTS Engine: Chatterbox TTS Server`
+
+Abogen now supports [Chatterbox TTS Server](https://github.com/JarodMica/Chatterbox-TTS-Server) as an alternative to the built-in Kokoro engine. Chatterbox provides additional voice models and features.
+
+### Setting up Chatterbox TTS Server
+
+1. **Clone the Chatterbox repository** (recommended: alongside your Abogen project):
+   ```bash
+   # Navigate to your projects directory
+   cd /path/to/your/projects
+   
+   # Clone Chatterbox TTS Server
+   git clone https://github.com/JarodMica/Chatterbox-TTS-Server.git
+   cd Chatterbox-TTS-Server
+   ```
+
+2. **Use the automated setup scripts** (works on Mac, Windows, and Linux):
+   ```bash
+   # Check if Docker is installed and running
+   ./check-docker.sh
+   
+   # Check server status
+   ./status.sh
+   
+   # Start the server (auto-detects your hardware)
+   ./start-server.sh
+   
+   # View server logs
+   ./logs.sh
+   
+   # Stop the server
+   ./stop-server.sh
+   ```
+
+3. **Hardware auto-detection**:
+   - **Mac (M1/M2/M3/M4)**: Uses CPU-optimized Docker Compose
+   - **Windows/Linux with NVIDIA GPU**: Uses CUDA acceleration
+   - **AMD GPU systems**: Uses ROCm acceleration
+   - **CPU-only systems**: Falls back to CPU processing
+
+4. **Configure Abogen to use Chatterbox**:
+   - Start the Chatterbox server: `./start-server.sh`
+   - Open Abogen and go to Settings
+   - Change "TTS Engine" from "Kokoro" to "Chatterbox"
+   - The server URL should be automatically set to `http://localhost:8004`
+   - Test the connection and start converting!
+
+### Benefits of Chatterbox TTS Server
+- Additional voice models and languages
+- Runs in a separate Docker container
+- Can be used across multiple projects
+- Hardware-optimized performance
+- Easy to start/stop when needed
+
+> [!TIP]
+> The Chatterbox server runs independently and can be started/stopped as needed. It doesn't need to run continuously - just start it when you want to use Abogen with Chatterbox voices.
+
 ## `How to run?`
 If you installed using pip, you can simply run the following command to start Abogen:
 

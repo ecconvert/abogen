@@ -688,6 +688,11 @@ class abogen(QWidget):
             "use_gpu", True  # Load GPU setting with default True
         )
         self.replace_single_newlines = self.config.get("replace_single_newlines", False)
+        
+        # TTS Engine configuration
+        self.tts_engine = self.config.get("tts_engine", "kokoro")
+        self.chatterbox_server_url = self.config.get("chatterbox_server_url", "http://localhost:8004")
+        
         self._pending_close_event = None
         self.gpu_ok = False  # Initialize GPU availability status
 
@@ -2762,6 +2767,37 @@ class abogen(QWidget):
 
         menu.addMenu(theme_menu)
 
+        # Add TTS Engine selection
+        tts_engine_menu = QMenu("TTS Engine", self)
+        tts_engine_menu.setToolTip("Choose the text-to-speech engine")
+
+        engine_group = QActionGroup(self)
+        engine_group.setExclusive(True)
+
+        # Engine options: (internal_value, display_text)
+        engine_options = [
+            ("kokoro", "Kokoro (Local)"),
+            ("chatterbox", "Chatterbox Server"),
+        ]
+
+        # Get current engine from config, default to "kokoro"
+        current_engine = self.config.get("tts_engine", "kokoro")
+        for value, text in engine_options:
+            engine_action = QAction(text, self)
+            engine_action.setCheckable(True)
+            engine_action.setChecked(current_engine == value)
+            engine_action.triggered.connect(lambda checked, v=value: self.set_tts_engine(v))
+            engine_group.addAction(engine_action)
+            tts_engine_menu.addAction(engine_action)
+
+        menu.addMenu(tts_engine_menu)
+
+        # Add Chatterbox server URL setting if Chatterbox is selected
+        if current_engine == "chatterbox":
+            chatterbox_config_action = QAction("Configure Chatterbox Server", self)
+            chatterbox_config_action.triggered.connect(self.configure_chatterbox_server)
+            menu.addAction(chatterbox_config_action)
+
         # Add separate chapters format option
         separate_chapters_format_menu = QMenu("Separate chapters audio format", self)
         separate_chapters_format_menu.setToolTip(
@@ -2879,6 +2915,61 @@ class abogen(QWidget):
 
         QProcess.startDetached(exe, args)
         QApplication.quit()
+
+    def set_tts_engine(self, engine_type):
+        """Set the TTS engine type."""
+        self.config["tts_engine"] = engine_type
+        save_config(self.config)
+        
+        # Show restart message for engine changes
+        QMessageBox.information(
+            self,
+            "Engine Changed",
+            f"TTS engine changed to {engine_type}. Some changes may require restarting the application."
+        )
+
+    def configure_chatterbox_server(self):
+        """Configure Chatterbox server URL."""
+        from PyQt5.QtWidgets import QInputDialog
+        
+        current_url = self.config.get("chatterbox_server_url", "http://localhost:8004")
+        
+        url, ok = QInputDialog.getText(
+            self,
+            "Configure Chatterbox Server",
+            "Enter Chatterbox server URL:",
+            text=current_url
+        )
+        
+        if ok and url:
+            # Validate URL format
+            if not url.startswith(("http://", "https://")):
+                url = "http://" + url
+            
+            self.config["chatterbox_server_url"] = url
+            save_config(self.config)
+            
+            # Test connection
+            self.test_chatterbox_connection(url)
+
+    def test_chatterbox_connection(self, url):
+        """Test connection to Chatterbox server."""
+        try:
+            import requests
+            response = requests.get(f"{url}/api/ui/initial-data", timeout=5)
+            response.raise_for_status()
+            
+            QMessageBox.information(
+                self,
+                "Connection Successful",
+                f"Successfully connected to Chatterbox server at {url}"
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Connection Failed",
+                f"Could not connect to Chatterbox server at {url}:\n\n{str(e)}\n\nPlease check the URL and ensure the server is running."
+            )
 
     def toggle_kokoro_internet_access(self, disabled):
         if disabled:

@@ -8,7 +8,7 @@ from platformdirs import user_desktop_dir
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import QCheckBox, QVBoxLayout, QDialog, QLabel, QDialogButtonBox
 import soundfile as sf
-from abogen.utils import clean_text, create_process, get_user_cache_path
+from abogen.utils import clean_text, create_process, get_user_cache_path, load_config
 from abogen.constants import (
     LANGUAGE_DESCRIPTIONS,
     SAMPLE_VOICE_TEXTS,
@@ -19,6 +19,7 @@ from abogen.constants import (
     SUPPORTED_SUBTITLE_FORMATS,
 )
 from abogen.voice_formulas import get_new_voice
+from abogen.tts_engines.factory import get_engine_from_config
 import abogen.hf_tracker as hf_tracker
 import static_ffmpeg
 import threading  # for efficient waiting
@@ -160,17 +161,47 @@ class ConversionThread(QThread):
         output_folder,
         subtitle_mode,
         output_format,
-        np_module,
-        kpipeline_class,
-        start_time,
-        total_char_count,
+        np_module=None,
+        kpipeline_class=None,
+        start_time=None,
+        total_char_count=None,
         use_gpu=True,
         from_queue=False,
     ):  # Add use_gpu parameter
         super().__init__()
         self._chapter_options_event = threading.Event()
-        self.np = np_module
-        self.KPipeline = kpipeline_class
+        
+        # Load configuration to determine TTS engine
+        self.config = load_config()
+        
+        # Initialize TTS engine based on configuration
+        try:
+            if self.config.get("tts_engine", "kokoro") == "chatterbox":
+                # Use Chatterbox engine
+                from abogen.tts_engines.chatterbox import ChatterboxEngine
+                server_url = self.config.get("chatterbox_server_url", "http://localhost:8004")
+                self.tts_engine = ChatterboxEngine(server_url)
+            else:
+                # Use Kokoro engine (default/legacy)
+                from abogen.tts_engines.kokoro import KokoroEngine
+                device = "cpu"
+                if use_gpu:
+                    if platform.system() == "Darwin" and platform.processor() == "arm":
+                        device = "mps"  # Use MPS for Apple Silicon
+                    else:
+                        device = "cuda"  # Use CUDA for other platforms
+                
+                self.tts_engine = KokoroEngine(
+                    kpipeline_class=kpipeline_class,
+                    lang_code=lang_code,
+                    device=device
+                )
+        except Exception as e:
+            # Fallback to legacy Kokoro initialization
+            self.np = np_module
+            self.KPipeline = kpipeline_class
+            self.tts_engine = None
+        
         self.file_name = file_name
         self.lang_code = lang_code
         self.speed = speed
@@ -311,18 +342,23 @@ class ConversionThread(QThread):
 
             self.log_updated.emit("\nInitializing TTS pipeline...")
 
-            # Set device based on use_gpu setting and platform
-            if self.use_gpu:
-                if platform.system() == "Darwin" and platform.processor() == "arm":
-                    device = "mps"  # Use MPS for Apple Silicon
+            # Initialize TTS engine if not already done
+            if self.tts_engine is None:
+                # Legacy Kokoro fallback
+                if self.use_gpu:
+                    if platform.system() == "Darwin" and platform.processor() == "arm":
+                        device = "mps"  # Use MPS for Apple Silicon
+                    else:
+                        device = "cuda"  # Use CUDA for other platforms
                 else:
-                    device = "cuda"  # Use CUDA for other platforms
-            else:
-                device = "cpu"
+                    device = "cpu"
 
-            tts = self.KPipeline(
-                lang_code=self.lang_code, repo_id="hexgrad/Kokoro-82M", device=device
-            )
+                tts = self.KPipeline(
+                    lang_code=self.lang_code, repo_id="hexgrad/Kokoro-82M", device=device
+                )
+            else:
+                # Use new engine system
+                tts = self.tts_engine
 
             if self.is_direct_text:
                 text = self.file_name  # Treat file_name as direct text input
@@ -1354,21 +1390,49 @@ class VoicePreviewThread(QThread):
 
     def __init__(
         self,
-        np_module,
-        kpipeline_class,
-        lang_code,
-        voice,
-        speed,
+        np_module=None,
+        kpipeline_class=None,
+        lang_code=None,
+        voice=None,
+        speed=1.0,
         use_gpu=False,
         parent=None,
     ):
         super().__init__(parent)
+        
+        # Load configuration to determine TTS engine
+        self.config = load_config()
+        
+        # Store parameters for legacy compatibility
         self.np_module = np_module
         self.kpipeline_class = kpipeline_class
         self.lang_code = lang_code
         self.voice = voice
         self.speed = speed
         self.use_gpu = use_gpu
+
+        # Initialize TTS engine
+        try:
+            if self.config.get("tts_engine", "kokoro") == "chatterbox":
+                from abogen.tts_engines.chatterbox import ChatterboxEngine
+                server_url = self.config.get("chatterbox_server_url", "http://localhost:8004")
+                self.tts_engine = ChatterboxEngine(server_url)
+            else:
+                from abogen.tts_engines.kokoro import KokoroEngine
+                device = "cpu"
+                if use_gpu:
+                    if platform.system() == "Darwin" and platform.processor() == "arm":
+                        device = "mps"
+                    else:
+                        device = "cuda"
+                
+                self.tts_engine = KokoroEngine(
+                    kpipeline_class=kpipeline_class,
+                    lang_code=lang_code,
+                    device=device
+                )
+        except Exception:
+            self.tts_engine = None
 
         # Cache location for preview audio
         self.cache_dir = get_user_cache_path("preview_cache")
@@ -1397,35 +1461,69 @@ class VoicePreviewThread(QThread):
 
         # Generate the preview and save to cache
         try:
-
-            # Set device based on use_gpu setting and platform
-            if self.use_gpu:
-                if platform.system() == "Darwin" and platform.processor() == "arm":
-                    device = "mps"  # Use MPS for Apple Silicon
+            if self.tts_engine is None:
+                # Legacy Kokoro fallback
+                if self.use_gpu:
+                    if platform.system() == "Darwin" and platform.processor() == "arm":
+                        device = "mps"  # Use MPS for Apple Silicon
+                    else:
+                        device = "cuda"  # Use CUDA for other platforms
                 else:
-                    device = "cuda"  # Use CUDA for other platforms
-            else:
-                device = "cpu"
+                    device = "cpu"
 
-            tts = self.kpipeline_class(
-                lang_code=self.lang_code, repo_id="hexgrad/Kokoro-82M", device=device
-            )
-            # Enable voice formula support for preview
-            if "*" in self.voice:
-                loaded_voice = get_new_voice(tts, self.voice, self.use_gpu)
+                tts = self.kpipeline_class(
+                    lang_code=self.lang_code, repo_id="hexgrad/Kokoro-82M", device=device
+                )
+                
+                # Enable voice formula support for preview
+                if "*" in self.voice:
+                    loaded_voice = get_new_voice(tts, self.voice, self.use_gpu)
+                else:
+                    loaded_voice = self.voice
+                    
+                sample_text = get_sample_voice_text(self.lang_code)
+                audio_segments = []
+                for result in tts(
+                    sample_text, voice=loaded_voice, speed=self.speed, split_pattern=None
+                ):
+                    audio_segments.append(result.audio)
+                if audio_segments:
+                    audio = self.np_module.concatenate(audio_segments)
+                    # Save directly to the cache path
+                    sf.write(self.cache_path, audio, 24000)
+                    self.temp_wav = self.cache_path
             else:
-                loaded_voice = self.voice
-            sample_text = get_sample_voice_text(self.lang_code)
-            audio_segments = []
-            for result in tts(
-                sample_text, voice=loaded_voice, speed=self.speed, split_pattern=None
-            ):
-                audio_segments.append(result.audio)
-            if audio_segments:
-                audio = self.np_module.concatenate(audio_segments)
-                # Save directly to the cache path
-                sf.write(self.cache_path, audio, 24000)
-                self.temp_wav = self.cache_path
+                # Use new engine system
+                sample_text = get_sample_voice_text(self.lang_code or "a")
+                
+                # For Chatterbox, handle voice format
+                voice_to_use = self.voice
+                if self.config.get("tts_engine", "kokoro") == "chatterbox":
+                    # Convert voice to Chatterbox format if needed
+                    if not voice_to_use.startswith(("predefined:", "reference:")):
+                        voice_to_use = f"predefined:{voice_to_use}"
+                
+                audio_segments = []
+                for result in self.tts_engine.generate(
+                    sample_text, voice=voice_to_use, speed=self.speed
+                ):
+                    audio_segments.append(result.audio)
+                
+                if audio_segments:
+                    # Concatenate audio segments
+                    if hasattr(audio_segments[0], "shape"):  # numpy array
+                        import numpy as np
+                        audio = np.concatenate(audio_segments)
+                    else:
+                        # Simple list concatenation
+                        audio = []
+                        for segment in audio_segments:
+                            audio.extend(segment)
+                    
+                    # Save to cache
+                    sf.write(self.cache_path, audio, 24000)
+                    self.temp_wav = self.cache_path
+                    
             self.finished.emit()
         except Exception as e:
             self.error.emit(f"Voice preview error: {str(e)}")
